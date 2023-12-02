@@ -14,17 +14,45 @@ body {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
 }
 
+.centered-image {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 80%;
+    padding-top: 2%;
+    padding-bottom:  2%;
+}
+
+.row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px; /* Space between rows */
+}
+
+.photo {
+    width: 100px; /* Adjust the size of the photo */
+    height: 100px; /* Adjust the height of the photo */
+    margin-right: 20px; /* Space between photo and description */
+    border-radius: 50%; /* Makes the image round */
+    object-fit: cover; /* Ensures the image covers the area */
+}
+
+.description {
+    flex-grow: 1;
+}
+  
+
 .blog-title {
     font-family: 'Montserrat', sans-serif; /* Modern, bold font for title */
     color: #7ed957; /* Vibrant mystical green for better visibility */
     text-align: left;
     margin-bottom: 40px;
-    font-size: 2.5em; /* Increased font size */
+    font-size: 2em; /* Increased font size */
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.6); /* Enhanced text shadow for depth */
 }
 
 .magic-box {
-    background-color: #333; /* Slightly lighter box for content */
+    background-color: rgb(31, 31, 31)d2d; /* Slightly lighter box for content */
     padding: 20px;
     border: 1px solid #6a0dad; /* Magical border color */
     box-shadow: 0px 0px 10px 2px #6a0dad; /* Soft glow effect */
