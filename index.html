@@ -17,16 +17,79 @@
         <section class="blog-section magic-box" id="introduction">
             <h2>Introduction</h2>
             <p>
-                Witches’ Brew introduces a novel type of integrity attack wherein a model is trained from scratch using tampered
-                data in order to target a specific image for misclassification. Authors are motivated by creating an integrity attack
+                Witches’ Brew introduces a novel type of integrity attack where a model is trained from scratch using tampered
+                data in order to target a specific image for misclassification. The authors are motivated by creating an integrity attack
                 that improves upon previous work to target larger scale models and work with minimal amounts of poisoned training
-                data. The technique used in their attack is called gradient matching. Here, authors find that the attacker may 
-                mimic the gradient of the target by creating poisoned data whose training gradient aligns with the gradient of 
-                an adversarial target. The authors define a threat model of an attacker who can control a limited amount of the training
+                data. <br><br>
+                
+                The technique used in their attack is called gradient matching. Here, the attacker
+                mimics the gradient of the target by creating poisoned data whose training gradient aligns with the gradient of 
+                an adversarial target. <br><br>
+                
+                The authors define a threat model of an attacker who can control a limited amount of the training
                 data, cannot modify labels of the training data, and has knowledge of model parameters but not entire details of the 
-                model architecture. 
+                model architecture.
 
-                <img src="media/poisoning_overview.png" alt="An overview of the poisoning procedure" class="centered-image">
+                <figure class="fig1">
+                    <img src="media/poisoning_overview.png" alt="An overview of the poisoning procedure" class="centered-image">
+                    <figcaption class="figcaption1">The attack perturbs a small set of data (around 0.1% in authors experiments)
+                        in an imperceptable manner using parameter information from a pre-trained model. The poisoned data is then fed back for 
+                        from-scratch training, and when the target image is checked for classification, the adversarial label is given.</figcaption>
+                </figure>
+
+                The data poisoning attack can be viewed as a bilevel optimization problem, where the poison perturbation &Theta; is optimized
+                to enforce the malicious label onto target data, while the solution to the inner problem still minimizes the original 
+                training objective of the model. Given P poisoned images by adding a perturbation &elta; to each image, the modification is
+                constrained by the l<sub>&infin;</sub>-norm to be no less than hyperparameter &epsilon;. Within this constraint the goal 
+                is to enforce similarity between the adversarial loss on targeted data x<sub>t</sub> (left side of equation) and the 
+                training loss on poisoned data (right side of equation): 
+
+                <figure class="fig1">
+                    <img src="media/matching_gradient_eq.png" class="centered-image">
+                    <figcaption class="figcaption1"> On the left side: the loss between adversarial label to predicted label of the targeted image. The goal is to minimize This
+                        loss in order to misclassify the target image as the adversarial label. On the right side: the loss described between 
+                        predicted label of poisoned data and its original label. Minimizing this loss maintains the validation accuracy of the model to 
+                        keep the attack imperceptible.
+                    </figcaption>
+                </figure>
+
+                Note: Here, authors decide to use a single target image x<sub>t</sub> for their experiments but mentioned multiple could be included 
+                at once. However evidence of the effectiveness of using the method for multiple targets is not strong.<br><br>
+
+                In order to align the target and the poison gradients in the same direction, the attack minimizes the cosine similarity between them using 
+                signed Adam updates with a decaying step size. In this formulation, the model parameters &Theta; are not changed, instead &Delta;<sub>i</sub>
+                is calculated in order to find the optimal poison to force misclassification. This method is particularly novel as it only requires a time
+                budget of a single epoch, and the differentiation of the loss only requires a smaller subset of poisoned images P, rather than the entire 
+                data set.  <br> <br>
+
+                Because the threat model of the attack does not give full knowledge of the model architecture, such as dropout layers, hyperparameters, data 
+                augmentation, etc, the authors propose several techniques to make to attack more robust to varying architecture: <br>
+                1. Data augmentation - at each minimization step, randomly draw a translation crop, and possibly flip for each poisoned image. Creates 
+                increased transferability and robustness to possible data augmentations within the model.<br>
+                2. Restarts - minimize the cosine similarity several times using different random starting perturbations, then select the lowest captured
+                alignment loss. <br>
+                3. Model Ensembles - optimize the attack over an ensemble of different models, increasing generalized performance at a high computational cost.
+                <br><br>
+
+
+                <figure class="fig1">
+                    <img src="media/graph_results.png" class="centered-image">
+                    <figcaption class="figcaption1"> Results on CIFAR-10 for a ResNet-18 to visualize varied values for R (restarts) and K (number of ensembles). 
+                    </figcaption>
+                </figure>
+                
+
+                <figure class="fig1">
+                    <img src="media/results_compared.png" class="centered-image">
+                    <figcaption class="figcaption1"> Benchmark results using benchmark proposed in Schwarzschild et al. (2020). The category
+                        "Training From Scratch" evaluates poisoned CIFAR-10 datasets with a poised training data budget of 1% 
+                        and &epsilon; = 8 averaged over 100 fixed scenarios. Compares the results of previously proposed methods for data
+                        poisoning from the same category. Models trained using ResNet-18 are evaluated next to other model architectures to 
+                        demonstrate the transferability of the attack. 
+                    </figcaption>
+                </figure>
+
+
 
 
             </p>
@@ -84,7 +147,7 @@
                     <div class="description">
                         <h3>Gavin Taylor</h3>
                         <p>Education: PhD from Duke University <br>
-                           Professional: Professor of Computer Science at US Naval Academy, reasearcher in collaboration with 
+                           Professional: Professor of Computer Science at US Naval Academy, researcher in collaboration with 
                            UMD on the behaviors and vulnerabilities of neural networks
                         </p>
                     </div>
