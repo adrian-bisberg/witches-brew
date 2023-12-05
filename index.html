@@ -71,7 +71,16 @@
       signed Adam updates with a decaying step size. In this formulation, the model parameters &Theta; are not changed, instead &Delta;<sub>i</sub>
       is calculated in order to find the optimal poison to force misclassification. This method is particularly novel as it only requires a time
       budget of a single epoch, and the differentiation of the loss only requires a smaller subset of poisoned images P, rather than the entire
-      data set. <br> <br>
+      data set.Authors additionally give theoretical grounds for their method by invoking a proof using "Zoutendij" (as defined in Nocedal &
+      Wright, 2006) to show that their bilevel gradient descent will converge locally. <br> <br>
+
+      <figure class="fig1">
+        <img src="media/cosine_similarity.png" class="centered-image">
+        <figcaption class="figcaption1"> Plotting the cosine similarity across training epochs, comparing the poisoned image set versus the unmodified
+          training to illustrate the gradient alignment achieved by the optimization process. The red line which represents that poisoned data maintains
+          a positive similarity throughout training.
+        </figcaption>
+      </figure>
 
       Because the threat model of the attack does not give full knowledge of the model architecture, such as dropout layers, hyperparameters, data
       augmentation, etc, the authors propose several techniques to make to attack more robust to varying architecture: <br>
@@ -82,13 +91,14 @@
       3. Model Ensembles - optimize the attack over an ensemble of different models, increasing generalized performance at a high computational cost.
       <br><br>
 
-
       <figure class="fig1">
         <img src="media/graph_results.png" class="centered-image">
         <figcaption class="figcaption1"> Results on CIFAR-10 for a ResNet-18 to visualize varied values for R (restarts) and K (number of ensembles).
         </figcaption>
       </figure>
 
+      Authors display results for the accuracy of the poisoned data set in comparison to similar methods, as well as transfer results
+      that test on models that were not used for training the poisoned data set.
 
       <figure class="fig1">
         <img src="media/results_compared.png" class="centered-image">
@@ -99,9 +109,6 @@
           demonstrate the transferability of the attack.
         </figcaption>
       </figure>
-
-
-
 
       </p>
     </section>
@@ -205,10 +212,28 @@
     <section class="blog-section magic-box" id="societal-impact">
       <h2>Societal Impact</h2>
       <p>
-        Poisoning attacks have serious implications for real-world applications. Safety-critical systems, such as autonomous vehicles and medical technology, are increasingly relying on machine learning as a key component, often without a deep understanding of their robustness properties. When these systems fall under the influence of motivated, powerful adversaries, a portal to a world of harm is opened.
-      </p>
+        Data poisoning attacks pose a serious security threat to the integrity of learning systems. The authors of Witches' Brew point out
+        the ideal type of poising attack includes imperceptible changes to images, minimal amounts of modified training data, and
+        no significant effect to the validation accuracy of the system. In machine learning systems that rely on large amounts of web scraped data,
+        attacks like Witches' Brew can easily be injected into several training cycles over time, making the attack both hard to detect
+        and difficult to fix. There are always qualifications to the feasibility of an adversarial attack; for Witches' Brew the attack
+        does depend on availability of the trained model and access to contributing training data. This means the attack would be more effective
+        against a continual learning model or a reinforcement based model. <br><br>
 
-      <p>
+        Model integrity attacks have larger social implications by providing a means to bypass important safety measures that the model is
+        trying to ensure. For example, an important measure taken in a large model could be to identify explicit or violent content, and a
+        data poisoning attack could force malicious classification of certain outputs as safe. <br><br>
+
+        Other types of adversarial attacks pose additional threats to model security. In a model extraction attack, the attacker uses queries of the
+        model and observed outputs in order to assemble a duplicate of a previously private model. Model inversion attacks can reveal information from the
+        data set that was used to train the model, and potentially compromise private information. <br><br>
+
+        Research into adversarial attacks is useful for identifying model vulnerabilities to different types of attacks and evaluating the
+        effectiveness of various defensive strategies. When models are built with increased knowledge of different attacks, security
+        measures can be incorporated into training and deployment of the model. In recent years, the field of adversarial research in ML
+        has grown significantly, providing for new standards to evaluate a model's robustness against adversarial attacks. Finding a completely
+        generalized defensive solution is difficult, however creating more fully documented and reproducible attacks doubtlessly will help
+        unify and progress defensive strategies.
 
       </p>
     </section>
@@ -231,6 +256,11 @@
     <section class="blog-section magic-box" id="academic-research">
       <h2>Academic Research Follow-Ups</h2>
       <p>The robustness of general machine learning algorithms to data poisoning attacks is still not well-understood. A valuable future research direction would be to </p>
+    </section>
+
+    <section class="blog-section magic-box" id="academic-research">
+      <h2>Peer Review Ratings</h2>
+      <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit...</p>
     </section>
 
     <section class="blog-section magic-box" id="references">
