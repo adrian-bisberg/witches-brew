@@ -119,7 +119,7 @@
 
       <figure class="fig1">
         <img src="media/results_compared.png" class="centered-image">
-        <figcaption class="figcaption1"> Benchmark results using benchmark proposed in Schwarzschild et al. (2020). The category
+        <figcaption class="figcaption1"> Results using benchmark proposed in Schwarzschild et al. (2020). The category
           "Training From Scratch" evaluates poisoned CIFAR-10 datasets with a poised training data budget of 1%
           and &epsilon; = 8 averaged over 100 fixed scenarios. Compares the results of previously proposed methods for data
           poisoning from the same category. Models trained using ResNet-18 are evaluated next to other model architectures to
@@ -292,7 +292,38 @@
 
     <section class="blog-section magic-box" id="academic-research">
       <h2>Peer Review Ratings</h2>
-      <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit...</p>
+      <p>Strengths: 
+        <li>
+        Clear conceptual and analytical explanation of gradient matching method used. Provides potential for extended work using the bilevel optimization mechanism becuase of the detailed discussion.
+        </li> 
+        <li>
+        Impressive results in the scaling and transferability of the method; using significantly sized datasets like ImageNet, and showing transfered success on black box models like Google Cloud AutoML.
+        </li> 
+        <li>
+        Clear that the authors made it a goal to make as least invasive an attack as possible. Clearly motivates future work to advance defensive mechanisms against likewise attacks. 
+        </li>
+      </p>
+
+      <p>Weaknesses:
+
+        <li>
+        Authors claim that matching multiple target images at once with the same attack method will yeild comperable results, but fail to give convincing proof that this will hold.
+        </li>
+
+        <li>
+        The 0.1% metric for percentage of poisoned data generally seems impressive, but when considered for a very large data set like ImageNet it actually seems to be a high volume of data still that will need to be poisoned.
+        </li>
+
+        <li>
+        Defensive strategies discussed seem to cover basics in the field, but could have further benefitted from a theoretical discussion of what new methods it might take to combat this specific attack. 
+        </li>
+      </p>
+
+      <p>Rating: 7: Good paper, accept.</p>
+
+      <p>Confidence: 4: The reviewer is confident but not absolutely certain that the evaluation is correct.</p>
+
+
     </section>
 
     <section class="blog-section magic-box" id="references">
