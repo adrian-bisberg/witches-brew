@@ -1,201 +1,299 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Witches Brew</title>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Witches Brew</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+
+  <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML"></script>
 </head>
+
 <body>
-    <div class="blog-container">
-        <h1 class="blog-title">An Analysis of: Witches’ Brew: Industrial Scale Data Poisoning Via Gradient Matching
-        </h1>
+  <div class="blog-container">
+    <h1 class="blog-title">An Analysis of: Witches’ Brew: Industrial Scale Data Poisoning Via Gradient Matching
+    </h1>
 
-        <h4> by Adrian Bisberg and Evan Rose </h4>
+    <h4> by Adrian Bisberg and Evan Rose </h4>
 
-        <section class="blog-section magic-box" id="introduction">
-            <h2>Introduction</h2>
-            <p>
-                Witches’ Brew introduces a novel type of integrity attack where a model is trained from scratch using tampered
-                data in order to target a specific image for misclassification. The authors are motivated by creating an integrity attack
-                that improves upon previous work to target larger scale models and work with minimal amounts of poisoned training
-                data. <br><br>
-                
-                The technique used in their attack is called gradient matching. Here, the attacker
-                mimics the gradient of the target by creating poisoned data whose training gradient aligns with the gradient of 
-                an adversarial target. <br><br>
-                
-                The authors define a threat model of an attacker who can control a limited amount of the training
-                data, cannot modify labels of the training data, and has knowledge of model parameters but not entire details of the 
-                model architecture.
+    <section class="blog-section magic-box" id="introduction">
+      <h2>Introduction</h2>
+      <p>
+        Witches' Brew introduces a novel type of integrity attack where a model is trained from scratch using tampered
+        data in order to target a specific image for misclassification. The authors are motivated by creating an integrity attack
+        that improves upon previous work to target larger scale models and work with minimal amounts of poisoned training
+        data. <br><br>
 
-                <figure class="fig1">
-                    <img src="media/poisoning_overview.png" alt="An overview of the poisoning procedure" class="centered-image">
-                    <figcaption class="figcaption1">The attack perturbs a small set of data (around 0.1% in authors experiments)
-                        in an imperceptable manner using parameter information from a pre-trained model. The poisoned data is then fed back for 
-                        from-scratch training, and when the target image is checked for classification, the adversarial label is given.</figcaption>
-                </figure>
+        The technique used in their attack is called gradient matching. Here, the attacker
+        mimics the gradient of the target by creating poisoned data whose training gradient aligns with the gradient of
+        an adversarial target. <br><br>
 
-                The data poisoning attack can be viewed as a bilevel optimization problem, where the poison perturbation &Theta; is optimized
-                to enforce the malicious label onto target data, while the solution to the inner problem still minimizes the original 
-                training objective of the model. Given P poisoned images by adding a perturbation &elta; to each image, the modification is
-                constrained by the l<sub>&infin;</sub>-norm to be no less than hyperparameter &epsilon;. Within this constraint the goal 
-                is to enforce similarity between the adversarial loss on targeted data x<sub>t</sub> (left side of equation) and the 
-                training loss on poisoned data (right side of equation): 
+        The authors define a threat model of an attacker who can control a limited amount of the training
+        data, cannot modify labels of the training data, and has knowledge of model parameters but not entire details of the
+        model architecture.
 
-                <figure class="fig1">
-                    <img src="media/matching_gradient_eq.png" class="centered-image">
-                    <figcaption class="figcaption1"> On the left side: the loss between adversarial label to predicted label of the targeted image. The goal is to minimize This
-                        loss in order to misclassify the target image as the adversarial label. On the right side: the loss described between 
-                        predicted label of poisoned data and its original label. Minimizing this loss maintains the validation accuracy of the model to 
-                        keep the attack imperceptible.
-                    </figcaption>
-                </figure>
+      <figure class="fig1">
+        <img src="media/poisoning_overview.png" alt="An overview of the poisoning procedure" class="centered-image">
+        <figcaption class="figcaption1">The attack perturbs a small set of data (around 0.1% in authors experiments)
+          in an imperceptable manner using parameter information from a pre-trained model. The poisoned data is then fed back for
+          from-scratch training, and when the target image is checked for classification, the adversarial label is given.</figcaption>
+      </figure>
 
-                Note: Here, authors decide to use a single target image x<sub>t</sub> for their experiments but mentioned multiple could be included 
-                at once. However evidence of the effectiveness of using the method for multiple targets is not strong.<br><br>
+      The data poisoning attack can be viewed as a bilevel optimization problem, where the poison perturbation &Theta; is optimized
+      to enforce the malicious label onto target data, while the solution to the inner problem still minimizes the original
+      training objective of the model. Given P poisoned images by adding a perturbation &elta; to each image, the modification is
+      constrained by the l<sub>&infin;</sub>-norm to be no less than hyperparameter &epsilon;. Within this constraint the goal
+      is to enforce similarity between the adversarial loss on targeted data x<sub>t</sub> (left side of equation) and the
+      training loss on poisoned data (right side of equation):
 
-                In order to align the target and the poison gradients in the same direction, the attack minimizes the cosine similarity between them using 
-                signed Adam updates with a decaying step size. In this formulation, the model parameters &Theta; are not changed, instead &Delta;<sub>i</sub>
-                is calculated in order to find the optimal poison to force misclassification. This method is particularly novel as it only requires a time
-                budget of a single epoch, and the differentiation of the loss only requires a smaller subset of poisoned images P, rather than the entire 
-                data set.  <br> <br>
+      <figure class="fig1">
+        \[\nabla_\theta \mathcal{L}(F(x^t, \theta), y^{\mathrm{adv}}) \approx \frac{1}{P} \sum_{i=1}^P \nabla_{\theta} \mathcal{L}(F(x_i + \Delta_i, \theta), y_i) \]
+        <figcaption class="figcaption1">
+          Caption.
+        </figcaption>
+      </figure>
 
-                Because the threat model of the attack does not give full knowledge of the model architecture, such as dropout layers, hyperparameters, data 
-                augmentation, etc, the authors propose several techniques to make to attack more robust to varying architecture: <br>
-                1. Data augmentation - at each minimization step, randomly draw a translation crop, and possibly flip for each poisoned image. Creates 
-                increased transferability and robustness to possible data augmentations within the model.<br>
-                2. Restarts - minimize the cosine similarity several times using different random starting perturbations, then select the lowest captured
-                alignment loss. <br>
-                3. Model Ensembles - optimize the attack over an ensemble of different models, increasing generalized performance at a high computational cost.
-                <br><br>
+      <figure class="fig1">
+        <img src="media/matching_gradient_eq.png" class="centered-image">
+        <figcaption class="figcaption1"> On the left side: the loss between adversarial label to predicted label of the targeted image. The goal is to minimize This
+          loss in order to misclassify the target image as the adversarial label. On the right side: the loss described between
+          predicted label of poisoned data and its original label. Minimizing this loss maintains the validation accuracy of the model to
+          keep the attack imperceptible.
+        </figcaption>
+      </figure>
 
+      Note: Here, authors decide to use a single target image x<sub>t</sub> for their experiments but mentioned multiple could be included
+      at once. However evidence of the effectiveness of using the method for multiple targets is not strong.<br><br>
 
-                <figure class="fig1">
-                    <img src="media/graph_results.png" class="centered-image">
-                    <figcaption class="figcaption1"> Results on CIFAR-10 for a ResNet-18 to visualize varied values for R (restarts) and K (number of ensembles). 
-                    </figcaption>
-                </figure>
-                
+      In order to align the target and the poison gradients in the same direction, the attack minimizes the cosine similarity between them using
+      signed Adam updates with a decaying step size. In this formulation, the model parameters &Theta; are not changed, instead &Delta;<sub>i</sub>
+      is calculated in order to find the optimal poison to force misclassification. This method is particularly novel as it only requires a time
+      budget of a single epoch, and the differentiation of the loss only requires a smaller subset of poisoned images P, rather than the entire
+      data set. <br> <br>
 
-                <figure class="fig1">
-                    <img src="media/results_compared.png" class="centered-image">
-                    <figcaption class="figcaption1"> Benchmark results using benchmark proposed in Schwarzschild et al. (2020). The category
-                        "Training From Scratch" evaluates poisoned CIFAR-10 datasets with a poised training data budget of 1% 
-                        and &epsilon; = 8 averaged over 100 fixed scenarios. Compares the results of previously proposed methods for data
-                        poisoning from the same category. Models trained using ResNet-18 are evaluated next to other model architectures to 
-                        demonstrate the transferability of the attack. 
-                    </figcaption>
-                </figure>
+      Because the threat model of the attack does not give full knowledge of the model architecture, such as dropout layers, hyperparameters, data
+      augmentation, etc, the authors propose several techniques to make to attack more robust to varying architecture: <br>
+      1. Data augmentation - at each minimization step, randomly draw a translation crop, and possibly flip for each poisoned image. Creates
+      increased transferability and robustness to possible data augmentations within the model.<br>
+      2. Restarts - minimize the cosine similarity several times using different random starting perturbations, then select the lowest captured
+      alignment loss. <br>
+      3. Model Ensembles - optimize the attack over an ensemble of different models, increasing generalized performance at a high computational cost.
+      <br><br>
 
 
+      <figure class="fig1">
+        <img src="media/graph_results.png" class="centered-image">
+        <figcaption class="figcaption1"> Results on CIFAR-10 for a ResNet-18 to visualize varied values for R (restarts) and K (number of ensembles).
+        </figcaption>
+      </figure>
 
 
-            </p>
-        </section>
+      <figure class="fig1">
+        <img src="media/results_compared.png" class="centered-image">
+        <figcaption class="figcaption1"> Benchmark results using benchmark proposed in Schwarzschild et al. (2020). The category
+          "Training From Scratch" evaluates poisoned CIFAR-10 datasets with a poised training data budget of 1%
+          and &epsilon; = 8 averaged over 100 fixed scenarios. Compares the results of previously proposed methods for data
+          poisoning from the same category. Models trained using ResNet-18 are evaluated next to other model architectures to
+          demonstrate the transferability of the attack.
+        </figcaption>
+      </figure>
 
-        <section class="blog-section magic-box" id="history">
-            <h2>History and Related Works</h2>
-            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit...</p>
-        </section>
 
-        <section class="blog-section magic-box" id="author-biography">
-            <h2>Author Biography</h2>
-            <p>
-                <div class="row">
-                    <img src="media/jonas_geiping.png" class="photo">
-                    <div class="description">
-                        <h3>Jonas Geiping</h3>
-                        <p> Education: MS in Mathematics from University of Münster; PhD in Computer Science from University of Siegen <br>
-                            Jonas was a Postdoctoral Associate at University of Maryland during the publishing of this paper. <br>
-                            Research goals: Understanding data privacy and adversarial attacks in large scale models. How to define and develop
-                            "safer" models. 
-                        </p>
-                    </div>
-                </div>
-            
-                <div class="row">
-                    <img src="media/liam_fowl.jpg" class="photo">
-                    <div class="description">
-                        <h3>Liam Fowl</h3>
-                        <p>Education: PhD in Mathematics from University of Maryland <br>
-                           Research Interests: Clean-label data poisoning, metalearning, and federated learning</p>
-                    </div>
-                </div>
 
-                <div class="row">
-                    <img src="media/ronny_huang.jpg" class="photo">
-                    <div class="description">
-                        <h3>W Ronny Huang</h3>
-                        <p>Education: PhD in Electrical Engineering and Computer Science at MIT, Machine Learning Researcher at University of Maryland <br>
-                           Professional: Technical Staff at NASA, Research Scientist at Google </p>
-                    </div>
-                </div>
 
-                <div class="row">
-                    <img src="media/empty.jpg" class="photo">
-                    <div class="description">
-                        <h3>Wojciech Czaja</h3>
-                        <p> Professor in the Mathematics department at University of Maryland <br> 
-                            Author on over 100 papers at UMD, several collaborations with Geiping and Fowl</p>
-                    </div>
-                </div>
+      </p>
+    </section>
 
-                <div class="row">
-                    <img src="media/gavin_taylor.jpg" class="photo">
-                    <div class="description">
-                        <h3>Gavin Taylor</h3>
-                        <p>Education: PhD from Duke University <br>
-                           Professional: Professor of Computer Science at US Naval Academy, researcher in collaboration with 
-                           UMD on the behaviors and vulnerabilities of neural networks
-                        </p>
-                    </div>
-                </div>
+    <section class="blog-section magic-box" id="history">
+      <h2>History and Related Works</h2>
+      <p>
+        Data poisoning attacks against machine learning extend back at least as early as the 2000s, when security researchers were interested in manipulating email spam filters (<a href="#cite-nelson2008">Nelson et al., 2008</a>). This was a time before deep learning had gained traction in practical applications, so these attacks typically targeted simple classifiers, such as logistic regression or SVM.
+      </p>
 
-                <div class="row">
-                    <img src="media/michael_moller.jpg" class="photo">
-                    <div class="description">
-                        <h3>Michael Moeller</h3>
-                        <p>Education: PhD from University of Münster <br>
-                           Professional: Professor for Computer Vision at the University of Siegen, Germany <br>
-                           Research Interests: Model and learning based techniques in imaging and computer vision
-                        </p>
-                    </div>
-                </div>
+      <p>
+        Between 2012 and 2014, a number of works developed gradient-based attacks against classification, including against neural networks. <a href="#cite-biggio2012">Biggio et al.</a> (2012) used gradient methods to craft poisoned data that increases SVM test error. Around the same time, <a href="#cite-biggio2013">Biggio et al.</a> (2013) and <a href="#cite-szegedy2014">Szegedy et al.</a> (2014) used gradient methods to evade machine learning classifiers by perturbing test instances in imperceptible ways. This early work sparked a flurry of work on understanding the robustness properties of machine learning systems, especially deep neural networks.
+      </p>
 
-                <div class="row">
-                    <img src="media/tom_goldstein.png" class="photo">
-                    <div class="description">
-                        <h3>Tom Goldstein</h3>
-                        <p>Education: PhD in Mathematics from UCLA, research scientist at Rice University and Stanford University<br>
-                           Professional: Professor of Computer Science at University of Maryland<br>
-                           Research Interests: Computer vision, signal processing, platform optimization
-                        </p>
-                    </div>
-                </div>
-            </p>
-        </section>
+      <p>
+        Modern work on poisoning has advanced to become much more effective and stealthy. For example, the early backdoor poisoning attack by <a href="#cite-gu2017">Gu et al.</a> (2017), which assumed an attacker with the ability to arbitrarily change training data, was soon refined to include versions in which the attacker does not need the ability to modify data labels (<a href="#cite-turner2019">Turner et al., 2019</a>) or reveal the backdoor trigger inside the training data (<a href="#cite-saha2020">Saha et al., 2020</a>). Other attacks targeted the transfer learning setting (<a href="#cite-shafahi2018">Shafahi et al, 2018</a>; <a href="#cite-zhu2019">Zhu et al., 2019</a>) by crafting poisons that behavior anomolously in the learned represenatation space.
+      </p>
 
-        <section class="blog-section magic-box" id="societal-impact">
-            <h2>Societal Impact</h2>
-            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit...</p>
-        </section>
+      <p>
+        Today, practitioners consider poisoning attacks to be among the most serious threats to machine learning security (<a href="#cite-sivakumar2020">Kumar et al., 2020</a>). This is because modern machine learning typically relies on collecting massive amounts of training data, often from untrusted sources and on such a large scale that manual data cleaning is impossible.
+      </p>
+    </section>
 
-        <section class="blog-section magic-box" id="industry-applications">
-            <h2>Industry Applications</h2>
-            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit...</p>
-        </section>
+    <section class="blog-section magic-box" id="author-biography">
+      <h2>Author Biography</h2>
+      <p>
+      <div class="row">
+        <img src="media/jonas_geiping.png" class="photo">
+        <div class="description">
+          <h3>Jonas Geiping</h3>
+          <p> Education: MS in Mathematics from University of Münster; PhD in Computer Science from University of Siegen <br>
+            Jonas was a Postdoctoral Associate at University of Maryland during the publishing of this paper. <br>
+            Research goals: Understanding data privacy and adversarial attacks in large scale models. How to define and develop
+            "safer" models.
+          </p>
+        </div>
+      </div>
 
-        <section class="blog-section magic-box" id="academic-research">
-            <h2>Academic Research Follow-Ups</h2>
-            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit...</p>
-        </section>
+      <div class="row">
+        <img src="media/liam_fowl.jpg" class="photo">
+        <div class="description">
+          <h3>Liam Fowl</h3>
+          <p>Education: PhD in Mathematics from University of Maryland <br>
+            Research Interests: Clean-label data poisoning, metalearning, and federated learning</p>
+        </div>
+      </div>
 
-        <section class="blog-section magic-box" id="references">
-            <h2>References</h2>
-            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit...</p>
-        </section>
-    </div>
+      <div class="row">
+        <img src="media/ronny_huang.jpg" class="photo">
+        <div class="description">
+          <h3>W Ronny Huang</h3>
+          <p>Education: PhD in Electrical Engineering and Computer Science at MIT, Machine Learning Researcher at University of Maryland <br>
+            Professional: Technical Staff at NASA, Research Scientist at Google </p>
+        </div>
+      </div>
+
+      <div class="row">
+        <img src="media/empty.jpg" class="photo">
+        <div class="description">
+          <h3>Wojciech Czaja</h3>
+          <p> Professor in the Mathematics department at University of Maryland <br>
+            Author on over 100 papers at UMD, several collaborations with Geiping and Fowl</p>
+        </div>
+      </div>
+
+      <div class="row">
+        <img src="media/gavin_taylor.jpg" class="photo">
+        <div class="description">
+          <h3>Gavin Taylor</h3>
+          <p>Education: PhD from Duke University <br>
+            Professional: Professor of Computer Science at US Naval Academy, researcher in collaboration with
+            UMD on the behaviors and vulnerabilities of neural networks
+          </p>
+        </div>
+      </div>
+
+      <div class="row">
+        <img src="media/michael_moller.jpg" class="photo">
+        <div class="description">
+          <h3>Michael Moeller</h3>
+          <p>Education: PhD from University of Münster <br>
+            Professional: Professor for Computer Vision at the University of Siegen, Germany <br>
+            Research Interests: Model and learning based techniques in imaging and computer vision
+          </p>
+        </div>
+      </div>
+
+      <div class="row">
+        <img src="media/tom_goldstein.png" class="photo">
+        <div class="description">
+          <h3>Tom Goldstein</h3>
+          <p>Education: PhD in Mathematics from UCLA, research scientist at Rice University and Stanford University<br>
+            Professional: Professor of Computer Science at University of Maryland<br>
+            Research Interests: Computer vision, signal processing, platform optimization
+          </p>
+        </div>
+      </div>
+      </p>
+    </section>
+
+    <section class="blog-section magic-box" id="societal-impact">
+      <h2>Societal Impact</h2>
+      <p>
+        Poisoning attacks have serious implications for real-world applications. Safety-critical systems, such as autonomous vehicles and medical technology, are increasingly relying on machine learning as a key component, often without a deep understanding of their robustness properties. When these systems fall under the influence of motivated, powerful adversaries, a portal to a world of harm is opened.
+      </p>
+
+      <p>
+
+      </p>
+    </section>
+
+    <section class="blog-section magic-box" id="industry-applications">
+      <h2>Industry Applications</h2>
+      <p>
+        The central mechanism used to generate the poisons, called gradient alignment, is a general-purpose relaxation of a difficult bi-level optimization problem. Such problems frequently appear in many different applications, even those not involving any security objective. We will briefly motivate one such example, *dataset condensation*, and describe how gradient alignment can be used to achieve it.
+      </p>
+
+      <p>
+        Consider the process of learning a new field of study. When the field is nascent, the task of understanding it falls to researchers, who wander inefficiently through a vast expanse of possibilities. Many simultaneous threads of research extend in parallel, attemtpting to chart an unknown landscape, only to be nipped when their usefulness is exhausted and a better approach discovered. Without a clear roadmap, this process produces a large amount of waste information.
+      </p>
+
+      <p>
+        Eventually, however,
+      </p>
+    </section>
+
+    <section class="blog-section magic-box" id="academic-research">
+      <h2>Academic Research Follow-Ups</h2>
+      <p>The robustness of general machine learning algorithms to data poisoning attacks is still not well-understood. A valuable future research direction would be to </p>
+    </section>
+
+    <section class="blog-section magic-box" id="references">
+      <h2>References</h2>
+      <ul id="references-list">
+        <li id="cite-nelson2008">
+          B. Nelson et al. <i>Exploiting machine learning to subvert your spam filter</i>.
+          In <i>Proceedings of the 1st Usenix Workshop on Large-Scale Exploits and Emergent Threats, in LEET'08</i>.
+          USA: USENIX Association, Apr. 2008, pp. 1-9.
+        </li>
+        <li id="cite-sivakumar2020">
+          R. S. Siva Kumar et al. <i>Adversarial Machine Learning-Industry Perspectives</i>.
+          In <i>2020 IEEE Security and Privacy Workshops (SPW)</i>, May 2020, pp. 69-75.
+          doi: <a href="https://doi.org/10.1109/SPW50608.2020.00028">10.1109/SPW50608.2020.00028</a>
+        </li>
+        <li id="cite-biggio2012">
+          B. Biggio, B. Nelson, and P. Laskov. <i>Poisoning attacks against support vector machines</i>.
+          In <i>Proceedings of the 29th International Conference on Machine Learning, in ICML'12</i>.
+          Madison, WI, USA: Omnipress, Jun. 2012, pp. 1467-1474.
+        </li>
+        <li id="cite-biggio2013">
+          B. Biggio et al. <i>Evasion Attacks against Machine Learning at Test Time</i>.
+          In <i>Machine Learning and Knowledge Discovery in Databases, in Lecture Notes in Computer Science</i>.
+          Berlin, Heidelberg: Springer, 2013, pp. 387-402.
+          doi: <a href="https://doi.org/10.1007/978-3-642-40994-3_25">10.1007/978-3-642-40994-3_25</a>
+        </li>
+        <li id="cite-szegedy2014">
+          C. Szegedy et al. <i>Intriguing properties of neural networks.</i>
+          arXiv, Feb. 19, 2014.
+          doi: <a href="https://doi.org/10.48550/arXiv.1312.6199">10.48550/arXiv.1312.6199</a>
+        </li>
+        <li id="cite-gu2017">
+          Tianyu Gu, Brendan Dolan-Gavitt, Siddharth Garg (2017).
+          <i>BadNets: Identifying Vulnerabilities in the Machine Learning Model Supply Chain.</i>
+          <span class="eprint-info">arXiv preprint, arXiv:1708.06733 [cs.CR], 2017.</span>
+        </li>
+        <li id="cite-saha2020">
+          A. Saha, A. Subramanya, and H. Pirsiavash. <i>Hidden-Trigger Backdoor Attacks</i>.
+          34th AAAI Conference on Artificial Intelligence (AAAI) 2020, Apr. 2020.
+          Accessed: Dec. 04, 2023.
+          [Online]. Available: <a href="https://par.nsf.gov/biblio/10188566-hidden-trigger-backdoor-attacks">https://par.nsf.gov/biblio/10188566-hidden-trigger-backdoor-attacks</a>
+        </li>
+        <li id="cite-turner2019">
+          A. Turner, D. Tsipras, and A. Madry. <i>Label-Consistent Backdoor Attacks.</i>
+          arXiv, Dec. 06, 2019.
+          doi: <a href="https://doi.org/10.48550/arXiv.1912.02771">10.48550/arXiv.1912.02771</a>
+        </li>
+        <li id="cite-zhu2019">
+          C. Zhu, W. R. Huang, H. Li, G. Taylor, C. Studer, and T. Goldstein.
+          <i>Transferable Clean-Label Poisoning Attacks on Deep Neural Nets.</i>
+          In <i>Proceedings of the 36th International Conference on Machine Learning, PMLR</i>, May 2019, pp. 7614-7623.
+          Accessed: Dec. 04, 2023.
+          [Online]. Available: <a href="https://proceedings.mlr.press/v97/zhu19a.html">https://proceedings.mlr.press/v97/zhu19a.html</a>
+        </li>
+        <li id="cite-shafahi2018">
+          A. Shafahi et al.
+          <i>Poison Frogs! Targeted Clean-Label Poisoning Attacks on Neural Networks.</i>
+          In <i>Proceedings of the 32nd International Conference on Neural Information Processing Systems, NIPS'18</i>.
+          Red Hook, NY, USA: Curran Associates Inc., Dec. 2018, pp. 6106-6116.
+        </li>
+      </ul>
+    </section>
+  </div>
 </body>
+
 </html>

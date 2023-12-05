@@ -10,6 +10,7 @@ body {
     max-width: 1000px;
     margin: 40px auto;
     padding: 20px;
+    /*background-color: rgba(43, 43, 43, 0.9);*/
     background-color: #2b2b2b; /* Darker background for contrast */
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
 }
@@ -76,7 +77,7 @@ body {
 }
 
 .blog-section:hover {
-    transform: translateY(-5px);
+    /*transform: translateY(-5px);*/
     box-shadow: 0 6px 12px rgba(108, 0, 108, 0.5); /* Deep purple shadow on hover */
 }
 
@@ -95,4 +96,28 @@ body {
     .blog-container {
         margin: 20px;
     }
+}
+
+/* References */
+
+#references-list {
+    list-style-type: none;
+    padding: 0;
+}
+
+#references-list li {
+    margin-bottom: 10px;
+}
+
+.publication-info {
+    font-style: italic;
+}
+
+.url-info {
+    margin-left: 10px;
+}
+
+a {
+    color: #cccccc;
+    text-decoration: underline;
 }
