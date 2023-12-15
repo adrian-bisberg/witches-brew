@@ -1,7 +1,7 @@
 body {
     font-family: 'Merriweather', serif; /* Witch-themed font for body */
     background-color: #1a1a1a; /* Dark background for a mystical vibe */
-    color: #e8e8e8;
+    color: #e0e0e0;
     margin: 0;
     padding: 0;
 }
@@ -42,7 +42,7 @@ body {
 
 .fig1 {
     /* Center the image and caption */
-    text-align: center;
+    text-align: justify;
     /* Add some space around the figure */
     margin: 20px;
 }
@@ -66,9 +66,10 @@ body {
 
 .magic-box {
     background-color: rgb(31, 31, 31)d2d; /* Slightly lighter box for content */
+    box-shadow: 0 6px 12px rgba(108, 0, 108, 0.5); /* Deep purple shadow on hover */
     padding: 20px;
     border: 1px solid #6a0dad; /* Magical border color */
-    box-shadow: 0px 0px 10px 2px #6a0dad; /* Soft glow effect */
+    
 }
 
 .blog-section {
@@ -78,7 +79,8 @@ body {
 
 .blog-section:hover {
     /*transform: translateY(-5px);*/
-    box-shadow: 0 6px 12px rgba(108, 0, 108, 0.5); /* Deep purple shadow on hover */
+    box-shadow: 0px 0px 10px 2px #6a0dad; /* Soft glow effect */
+
 }
 
 .blog-section h2 {
@@ -88,7 +90,7 @@ body {
 }
 
 .blog-section p {
-    color: #e8e8e8; /* Lighter text for readability */
+    color: #e0e0e0; /* Lighter text for readability */
     line-height: 1.6;
 }
 
@@ -120,4 +122,8 @@ body {
 a {
     color: #cccccc;
     text-decoration: underline;
+}
+
+strong {
+    color: #ffffff;
 }

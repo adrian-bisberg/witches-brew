@@ -13,73 +13,126 @@
 
 <body>
   <div class="blog-container">
-    <h1 class="blog-title">An Analysis of: Witches’ Brew: Industrial Scale Data Poisoning Via Gradient Matching
+    <h1 class="blog-title">An Analysis of: Witches&rsquo; Brew: Industrial Scale Data Poisoning Via Gradient Matching
     </h1>
 
-    <h4> by Adrian Bisberg and Evan Rose </h4>
+    <h4>Analysis by Adrian Bisberg and Evan Rose</h4>
 
     <section class="blog-section magic-box" id="introduction">
       <h2>Introduction</h2>
-      <p>
-        Witches' Brew introduces a novel type of integrity attack where a model is trained from scratch using tampered
-        data in order to target a specific image for misclassification. The authors are motivated by creating an integrity attack
-        that improves upon previous work to target larger scale models and work with minimal amounts of poisoned training
-        data.
-      </p>
-      <p>
-        The technique used in their attack is called gradient matching. Here, the attacker
-        mimics the gradient of the target by creating poisoned data whose training gradient aligns with the gradient of
-        an adversarial target.
-      </p>
 
       <p>
-        The authors define a threat model of an attacker who can control a limited amount of the training
-        data, cannot modify labels of the training data, and has knowledge of model parameters but not entire details of the
-        model architecture.
+        Modern machine learning typically relies on collecting massive amounts of training data, often from untrusted sources, in order to train a large-scale model. For example, the Pile dataset (<a href="#cite-gao2020">Gao et al., 2020</a>), which is commonly used for language modeling tasks, consists of over 800 GB of text data scraped from the internet with only limited filtering. This process exposes machine learning systems to <i>data poisoning attacks</i>. In a data poisoning attack, an adversary injects malicious data into the training set in order to manipulate the behavior of the trained model.
+      </p>
+
+      <!-- Witches&rsquo; Brew introduces a novel type of data poisoning attack where a model is trained from scratch using tampered data in order to target a specific image for misclassification. The authors are motivated by creating an integrity attack that improves upon previous work to target larger scale models and work with minimal amounts of poisoned training data. -->
+
+      <p>
+        This paper studies a stealthy type of poisoning attack in which the poisoned images must resemble clean training data. This means the attacker cannot simply inject incorrectly-labeled examples into the dataset, but rather must apply imperceptible perturbations on top of the original images. To the human eye, the poisoned dataset is indistinguishable from the original.
       </p>
 
       <figure class="fig1">
         <img src="media/poisoning_overview.png" alt="An overview of the poisoning procedure" class="centered-image">
-        <figcaption class="figcaption1">The attack perturbs a small set of data (around 0.1% in authors experiments)
-          in an imperceptable manner using parameter information from a pre-trained model. The poisoned data is then fed back for
-          from-scratch training, and when the target image is checked for classification, the adversarial label is given.</figcaption>
+        <figcaption class="figcaption1">
+          The attack perturbs a small set of data (between 0.1% and 1% of the training set) in an imperceptable manner using parameter information from a pre-trained model. After re-training from scratch on the poisoned data, the model misclassifies the target image as the adversarial label.
+        </figcaption>
       </figure>
+    </section>
+
+    <section class="blog-section magic-box" id="methods">
+      <h2>Methods and Results</h2>
+
+      <h3>Threat Model</h3>
 
       <p>
-        The data poisoning attack can be viewed as a bilevel optimization problem, where the poison perturbation &Theta; is optimized
-        to enforce the malicious label onto target data, while the solution to the inner problem still minimizes the original
-        training objective of the model. Given P poisoned images by adding a perturbation \(\Delta\) to each image, the modification is
-        constrained by the \(\ell_{\infty}\)-norm to be no less than hyperparameter \(\varepsilon\). Within this constraint the goal
-        is to enforce similarity between the adversarial loss on targeted data \(x_t\) (left side of equation) and the
-        training loss on poisoned data (right side of equation):
+        Security papers typically outline a set of rules called a <i>threat model</i> describing the knowledge, capabilities, and goals of the attacker. The threat model used in Witches&rsquo; Brew is as follows:
       </p>
 
-      <figure class="fig1">
+      <ul>
+        <li>
+          <strong>Goal:</strong> The attacker wishes to force the model to misclassify a specific image (or a small set of images) \(x^t\) to a particular class \(y^{\mathrm{adv}}\).
+        </li>
+        <li>
+          <strong>Knowledge:</strong> The attacker may have knowledge of the model architecture, and potentially some small fraction of the training data.
+        <li>
+          <strong>Capabilities:</strong> The attacker can modify a small number of training samples, but cannot modify their labels. Moreover, the attacker can only modify each samples by a small amount, so that poisoned data is indistinguishable from clean data to the human eye.
+        </li>
+      </ul>
+
+      <p>
+        Formally, this threat model can be described as a bi-level optimization problem in which the adversary wants to minimize an <i>adversarial loss</i> (the adversary's objective) subject to the model developer's training procedure (on poisoned data):
+      </p>
+
+      <p>
+        \begin{align}
+        \min_{\Delta \in \mathcal{C}} &\sum_{i=1}^T \mathcal{L}(F(x_i^t, \theta(\Delta)), y_i^{\mathrm{adv}}) \\
+        &\mathrm{s.t.} \; \theta(\Delta) \in \arg \min_{\theta} \frac{1}{N} \sum_{i=1}^N \mathcal{L}(F(x_i + \Delta_i, \theta), y_i)
+        \end{align}
+      </p>
+
+      <p>
+        In this formulation, the (bounded) perturbation \(\Delta\) is optimized
+        to enforce the malicious label onto target data, while the solution to the inner problem still minimizes the original training objective of the model. A per-instance perturbation budget \(\varepsilon\) bounds the \(\ell_\infty\)-norm of the perturbation \(\Delta_i\), and this constraint is encoded inside the set \(\mathcal{C}\).
+      </p>
+
+      <h3>Key Idea: Gradient Alignment</h3>
+
+      <p>
+        The bi-level problem above is difficult to solve directly due to the expensive nature of the inner problem. Instead, the authors propose a method called <i>gradient alignment</i> to solve the problem efficiently. The key idea is to align the gradient of the adversarial loss with the gradient of the poisoned training loss. If the adversary could enforce similarity of the gradients:
+      </p>
+
+      <p>
+        \[
+        \nabla_\theta \mathcal{L}(F(x^t, \theta), y^{\mathrm{adv}}) \approx \frac{1}{N} \sum_{i=1}^N \nabla_{\theta} \mathcal{L}(F(x_i + \Delta_i, \theta), y_i)
+        \]
+      </p>
+
+      <p>
+        for all \(\theta\) encountered during training, the adversarial loss would correspondingly decrease. Since optimizing over all parameters is infeasible, this is achieved in practice by choosing perturbations \(\Delta_i\) minimizing the cosine dissimilarity between the two gradients over a small number of model parameters:
+      </p>
+
+      <p>
+        \[
+        \min_{\Delta \in \mathcal{C}} \sum_{i=1}^T \left(1 - \frac{\nabla_\theta \mathcal{L}(F(x^t, \theta), y^{\mathrm{adv}}) \cdot \nabla_{\theta} \sum_{i=1}^P \mathcal{L}(F(x_i + \Delta_i, \theta), y_i)}{\|\nabla_\theta \mathcal{L}(F(x^t, \theta), y^{\mathrm{adv}})\|_2 \|\nabla_{\theta} \sum_{i=1}^P \mathcal{L}(F(x_i + \Delta_i, \theta), y_i)\|_2}\right)
+        \]
+      </p>
+
+      <!-- <figure class="fig1">
         \[\nabla_\theta \mathcal{L}(F(x^t, \theta), y^{\mathrm{adv}}) \approx \frac{1}{P} \sum_{i=1}^P \nabla_{\theta} \mathcal{L}(F(x_i + \Delta_i, \theta), y_i) \]
         <figcaption class="figcaption1"> On the left side: the loss between adversarial label to predicted label of the targeted image. The goal is to minimize This
           loss in order to misclassify the target image as the adversarial label. On the right side: the loss described between
           predicted label of poisoned data and its original label. Minimizing this loss maintains the validation accuracy of the model to
           keep the attack imperceptible.
         </figcaption>
-      </figure>
+      </figure> -->
 
       <!-- <figure class="fig1">
         <img src="media/matching_gradient_eq.png" class="centered-image">
       </figure> -->
 
-      <p>
+      <!-- <p>
         Note: Here, authors decide to use a single target image x<sub>t</sub> for their experiments but mentioned multiple could be included
         at once. However evidence of the effectiveness of using the method for multiple targets is not strong.
+      </p> -->
+
+
+      <!-- <p>
+        The technique used in their attack is called gradient matching. Here, the attacker mimics the gradient of the target by creating poisoned data whose training gradient aligns with the gradient of an adversarial target.
+      </p> -->
+
+      <!-- </p> -->
+
+      <p>
+        In order to align the target and the poison gradients in the same direction, the attack minimizes the cosine dissimilarity between them using signed Adam updates with a decaying step size. In this formulation, the model parameters \(\theta\) are not changed, instead \(\Delta_i\) is calculated in order to find the optimal poison to force misclassification. This method is particularly efficient as it only requires time scaling with the number of poisons \(P\), rather than the entire dataset.
       </p>
 
-      </p>
-      In order to align the target and the poison gradients in the same direction, the attack minimizes the cosine similarity between them using
-      signed Adam updates with a decaying step size. In this formulation, the model parameters \(\theta\) are not changed, instead \(\Delta_i\) is calculated in order to find the optimal poison to force misclassification. This method is particularly novel as it only requires a time budget of a single epoch, and the differentiation of the loss only requires a smaller subset of poisoned images P, rather than the entire
-      data set.Authors additionally give theoretical grounds for their method by invoking a proof using "Zoutendij" (as defined in Nocedal &
-      Wright, 2006) to show that their bilevel gradient descent will converge locally.
+      <p>
+        The authors additionally justify their method on theoretical grounds by invoking a classical result in numerical optimization called <i>Zoutendijk's Theorem</i> (<a href="#cite-nocedal2006">Nocedal & Wright, 2006</a>) to show that their bi-level gradient descent will reach a local optimum of the adversarial loss if the alignment is maintained consistently.
       </p>
 
-      <figure class="fig1">
+      <h3>Experimental Results</h3>
+
+      <figure class="fig1" style="float: right; width: 50%; margin-left: 1em;">
         <img src="media/cosine_similarity.png" class="centered-image">
         <figcaption class="figcaption1"> Plotting the cosine similarity across training epochs, comparing the poisoned image set versus the unmodified
           training to illustrate the gradient alignment achieved by the optimization process. The red line which represents that poisoned data maintains
@@ -106,24 +159,26 @@
       </ol>
 
 
-      <figure class="fig1">
+      <figure class="fig1" style="float: right; width: 50%; margin-left: 1em;">
         <img src="media/graph_results.png" class="centered-image">
         <figcaption class="figcaption1"> Results on CIFAR-10 for a ResNet-18 to visualize varied values for R (restarts) and K (number of ensembles).
         </figcaption>
       </figure>
 
       <p>
-        Authors display results for the accuracy of the poisoned data set in comparison to similar methods, as well as transfer results
-        that test on models that were not used for training the poisoned data set.
+        The authors display results for the success rate of the proposed method in producing the targeted misclassification. Overall, the attack is very effective (success rate \(> 90%\)) when the model architecture is known in advance and when the perturbation budget is sufficiently generous (\(\varepsilon \ge 16\)). When restricting the perturbation budget to \(\varepsilon = 8\), the attack success rate drops (45%-55% on CIFAR-10). When the poisons are generated using a surrogate model having a different architecture than the victim, success decreases further, to as low as \(7%\) when transferring from ResNet-18 to VGG11. However, attack generality can be improved by optimizing poisons over an ensemble of heterogeneous model architectures.
       </p>
 
       <figure class="fig1">
+        <img src="media/poisoned_diff.png" class="centered-image">
+        <figcaption class="figcaption1">
+          Poisoning ImageNet. On the top, clean images from the original dataset. On the bottom, poisoned images after applying optimized perturbations. Poisons were generated with a perturbation budget of \(\varepsilon = 8\).
+        </figcaption>
+      </figure>
+
+      <figure class="fig1">
         <img src="media/results_compared.png" class="centered-image">
-        <figcaption class="figcaption1"> Results using benchmark proposed in Schwarzschild et al. (2020). The category
-          "Training From Scratch" evaluates poisoned CIFAR-10 datasets with a poised training data budget of 1%
-          and &epsilon; = 8 averaged over 100 fixed scenarios. Compares the results of previously proposed methods for data
-          poisoning from the same category. Models trained using ResNet-18 are evaluated next to other model architectures to
-          demonstrate the transferability of the attack.
+        <figcaption class="figcaption1"> Results using benchmark proposed in Schwarzschild et al. (2020). The category "Training From Scratch" evaluates poisoned CIFAR-10 datasets with a poised training data budget of 1% and \(\epsilon = 8\) averaged over 100 attack targets. Compares the results of previously proposed methods for data poisoning from the same category. Models trained using ResNet-18 are evaluated next to other model architectures to demonstrate the transferability of the attack.
         </figcaption>
       </figure>
 
@@ -228,34 +283,26 @@
 
     <section class="blog-section magic-box" id="societal-impact">
       <h2>Societal Impact</h2>
+
       <p>
-        Data poisoning attacks pose a serious security threat to the integrity of learning systems. The authors of Witches' Brew point out
-        the ideal type of poising attack includes imperceptible changes to images, minimal amounts of modified training data, and
-        no significant effect to the validation accuracy of the system. In machine learning systems that rely on large amounts of web scraped data,
-        attacks like Witches' Brew can easily be injected into several training cycles over time, making the attack both hard to detect
-        and difficult to fix. There are always qualifications to the feasibility of an adversarial attack; for Witches' Brew the attack
-        does depend on availability of the trained model and access to contributing training data. This means the attack would be more effective
-        against a continual learning model or a reinforcement based model.
+        Data poisoning attacks pose a serious security threat to the integrity of learning systems. The authors of Witches&rsquo; Brew demonstrate
+        that poising attacks can be successfully launched using only imperceptible changes to images, minimal amounts of modified training data, and no significant effect to the validation accuracy of the system. In machine learning systems that rely on large amounts of web scraped data, attacks like Witches&rsquo; Brew can easily be injected into several training cycles over time, making the attack both hard to detect and difficult to fix.
       </p>
 
       <p>
-        Model integrity attacks have larger social implications by providing a means to bypass important safety measures that the model is
-        trying to ensure. For example, an important measure taken in a large model could be to identify explicit or violent content, and a
-        data poisoning attack could force malicious classification of certain outputs as safe.
+        There are always qualifications to the feasibility of an adversarial attack; for Witches&rsquo; Brew the attack does depend on availability of the trained model and access to contributing training data. This means the attack would be more effective against a continual learning model or a reinforcement based model.
       </p>
 
       <p>
-        Other types of adversarial attacks pose additional threats to model security. In a model extraction attack, the attacker uses queries of the
-        model and observed outputs in order to assemble a duplicate of a previously private model. Model inversion attacks can reveal information from the
-        data set that was used to train the model, and potentially compromise private information.
+        Model integrity attacks have larger social implications by providing a means to bypass important safety measures that the model is trying to ensure. For example, an important measure taken in a large model could be to identify explicit or violent content, and a data poisoning attack could force malicious classification of certain outputs as safe.
       </p>
 
       <p>
-        Research into adversarial attacks is useful for identifying model vulnerabilities to different types of attacks and evaluating the
-        effectiveness of various defensive strategies. When models are built with increased knowledge of different attacks, security
-        measures can be incorporated into training and deployment of the model. In recent years, the field of adversarial research in ML
-        has grown significantly, providing for new standards to evaluate a model's robustness against adversarial attacks. Finding a completely
-        generalized defensive solution is difficult, however creating more fully documented and reproducible attacks doubtlessly will help
+        Other types of adversarial attacks pose additional threats to model security. In a model extraction attack, the attacker uses queries of the model and observed outputs in order to assemble a duplicate of a previously private model. Model inversion attacks can reveal information from the dataset that was used to train the model, and potentially compromise private information.
+      </p>
+
+      <p>
+        Research into adversarial attacks is useful for identifying model vulnerabilities to different types of attacks and evaluating the effectiveness of various defensive strategies. When models are built with increased knowledge of different attacks, security measures can be incorporated into training and deployment of the model. In recent years, the field of adversarial research in ML has grown significantly, providing for new standards to evaluate a model's robustness against adversarial attacks. Finding a completely generalized defensive solution is difficult, however creating more fully documented and reproducible attacks doubtlessly will help
         unify and progress defensive strategies.
       </p>
     </section>
@@ -263,7 +310,7 @@
     <section class="blog-section magic-box" id="industry-applications">
       <h2>Industry Applications</h2>
       <p>
-        The central mechanism used to generate the poisons, called gradient alignment, is a general-purpose relaxation of a difficult bi-level optimization problem. Such problems frequently appear in many different applications, even those not involving any security objective. We will briefly motivate one such example, *dataset condensation*, and describe how gradient alignment can be used to achieve it.
+        The central mechanism used to generate the poisons, called gradient alignment, is a general-purpose relaxation of a difficult bi-level optimization problem. Such problems frequently appear in many different applications, even those not involving any security objective. We will briefly motivate one such example, <i>dataset condensation</i>, and describe how gradient alignment can be used to achieve it.
       </p>
 
       <p>
@@ -275,7 +322,7 @@
       </p>
 
       <p>
-        The process of dataset condensation can be formulated as a bi-level optimization problem, similar to the formulation used in Witches' Brew. The outer problem, which relates to the condensation task, is to minimize the test error of a model trained on a condensed dataset. The inner problem, which relates to the training task, is to minimize the training error of a model trained on the condensed dataset (which is being optimized itself). The outer problem is difficult to solve directly, because it requires full knowledge of the inner problem. Gradient alignment provides an efficient relaxation to this problem: instead of minimizing the test error directly, we minimize the cosine similarity between the original training gradient and the condensed training gradient over some sampling of model parameters.
+        The process of dataset condensation can be formulated as a bi-level optimization problem, similar to the formulation used in Witches&rsquo; Brew. The outer problem, which relates to the condensation task, is to minimize the test error of a model trained on a condensed dataset. The inner problem, which relates to the training task, is to minimize the training error of a model trained on the condensed dataset (which is being optimized itself). The outer problem is difficult to solve directly, because it requires full knowledge of the inner problem. Gradient alignment provides an efficient relaxation to this problem: instead of minimizing the test error directly, we minimize the cosine similarity between the original training gradient and the condensed training gradient over some sampling of model parameters.
       </p>
     </section>
 
@@ -292,30 +339,30 @@
 
     <section class="blog-section magic-box" id="academic-research">
       <h2>Peer Review Ratings</h2>
-      <p>Strengths: 
+      <p>Strengths:
         <li>
-        Clear conceptual and analytical explanation of gradient matching method used. Provides potential for extended work using the bilevel optimization mechanism becuase of the detailed discussion.
-        </li> 
+          Clear conceptual and analytical explanation of gradient matching method used. Provides potential for extended work using the bi-level optimization mechanism becuase of the detailed discussion.
+        </li>
         <li>
-        Impressive results in the scaling and transferability of the method; using significantly sized datasets like ImageNet, and showing transfered success on black box models like Google Cloud AutoML.
-        </li> 
+          Impressive results in the scaling and transferability of the method; using significantly sized datasets like ImageNet, and showing transfered success on black box models like Google Cloud AutoML.
+        </li>
         <li>
-        Clear that the authors made it a goal to make as least invasive an attack as possible. Clearly motivates future work to advance defensive mechanisms against likewise attacks. 
+          Clear that the authors made it a goal to make as least invasive an attack as possible. Clearly motivates future work to advance defensive mechanisms against likewise attacks.
         </li>
       </p>
 
       <p>Weaknesses:
 
         <li>
-        Authors claim that matching multiple target images at once with the same attack method will yeild comperable results, but fail to give convincing proof that this will hold.
+          Authors claim that matching multiple target images at once with the same attack method will yeild comperable results, but fail to give convincing proof that this will hold.
         </li>
 
         <li>
-        The 0.1% metric for percentage of poisoned data generally seems impressive, but when considered for a very large data set like ImageNet it actually seems to be a high volume of data still that will need to be poisoned.
+          The 0.1% metric for percentage of poisoned data generally seems impressive, but when considered for a very large dataset like ImageNet it actually seems to be a high volume of data still that will need to be poisoned.
         </li>
 
         <li>
-        Defensive strategies discussed seem to cover basics in the field, but could have further benefitted from a theoretical discussion of what new methods it might take to combat this specific attack. 
+          Defensive strategies discussed seem to cover basics in the field, but could have further benefitted from a theoretical discussion of what new methods it might take to combat this specific attack.
         </li>
       </p>
 
@@ -330,8 +377,8 @@
       <h2>References</h2>
       <ul id="references-list">
         <li>
-          Jonas Geiping, Liam Fowl, W. Ronny Huang, Wojciech Czaja, Gavin Taylor, Michael Moeller, & Tom Goldstein (2021).
-          <i>Witches' Brew: Industrial Scale Data Poisoning via Gradient Matching.</i>
+          J. Geiping et al. (2021).
+          <i>Witches&rsquo; Brew: Industrial Scale Data Poisoning via Gradient Matching.</i>
           doi: <a href="https://doi.org/10.48550/arXiv.2009.02276">10.48550/arXiv.2009.02276</a>
         </li>
         <li>
@@ -407,6 +454,13 @@
           arXiv, Jun. 06, 2023.
           doi: <a href="https://doi.org/10.48550/arXiv.2303.03592">10.48550/arXiv.2303.03592</a>
         </li>
+        <li id="cite-gao2020">
+          Leo Gao, Stella Biderman, Sid Black, Laurence Golding, Travis Hoppe, Charles Foster, Jason Phang, Horace He, Anish Thite, Noa Nabeshima, Shawn Presser, Connor Leahy (2020).
+          <i>The {P}ile: An 800GB Dataset of Diverse Text for Language Modeling.</i>
+          arXiv preprint, arXiv:2101.00027, 2020.
+          [Online]. Available: <a href="https://arxiv.org/abs/2101.00027">https://arxiv.org/abs/2101.00027</a>
+        </li>
+
       </ul>
     </section>
   </div>
