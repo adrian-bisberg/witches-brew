@@ -339,7 +339,13 @@
 
     <section class="blog-section magic-box" id="academic-research">
       <h2>Peer Review Ratings</h2>
-      <p>Strengths:
+
+      <h3>Adrian:</h3>
+
+      <p>
+        Strengths:
+      </p>
+      <ul>
         <li>
           Clear conceptual and analytical explanation of gradient matching method used. Provides potential for extended work using the bi-level optimization mechanism becuase of the detailed discussion.
         </li>
@@ -349,10 +355,13 @@
         <li>
           Clear that the authors made it a goal to make as least invasive an attack as possible. Clearly motivates future work to advance defensive mechanisms against likewise attacks.
         </li>
+      </ul>
+
+      <p>
+        Weaknesses:
       </p>
 
-      <p>Weaknesses:
-
+      <ul>
         <li>
           Authors claim that matching multiple target images at once with the same attack method will yeild comperable results, but fail to give convincing proof that this will hold.
         </li>
@@ -364,9 +373,47 @@
         <li>
           Defensive strategies discussed seem to cover basics in the field, but could have further benefitted from a theoretical discussion of what new methods it might take to combat this specific attack.
         </li>
-      </p>
+      </ul>
 
       <p>Rating: 7: Good paper, accept.</p>
+
+      <p>Confidence: 4: The reviewer is confident but not absolutely certain that the evaluation is correct.</p>
+
+      <h3>Evan:</h3>
+
+      <p>
+        Strengths:
+      </p>
+
+      <ul>
+        <li>
+          The ability to craft subtle but effective adversarial perturbations to training data reveals interesting properties of the optimization landscape of machine learning models. Besides the immediate security concern, these findings may be important for understanding the properties of the optimization problems arising in neural networks more generally.
+        </li>
+        <li>
+          The relaxation of the bi-level optimization problem used in this paper is a general-purpose technique that may be useful in other settings, such as dataset condensation.
+        </li>
+        <li>
+          The authors provide a clear and detailed explanation of their method, including a theoretical justification for its effectiveness.
+        </li>
+      </ul>
+
+      <p>
+        Weaknesses:
+      </p>
+
+      <ul>
+        <li>
+          Certain details of the threat model seem unrealistic. For example, it is unclear how the attacker is able to obtain useful enough model parameters used for poison crafting. Also
+        </li>
+        <li>
+          The attack is quite limited in its ability to target multiple targets simultaneously. Even if the attack fails when arbitrary targets are chosen, it would be interesting to see if the attack can be made more effective by choosing targets that are similar to each other.
+        </li>
+        <li>
+          It would have been interesting to see how the attack performs on a wider range of attack objectives, such as backdoor attacks which can co-exist with the original training objective.
+        </li>
+      </ul>
+
+      <p>Rating: 6: Accept.</p>
 
       <p>Confidence: 4: The reviewer is confident but not absolutely certain that the evaluation is correct.</p>
 
